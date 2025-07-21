@@ -18,13 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load model components
 model = joblib.load("best_model.pkl")
 scaler = joblib.load("scaler.pkl")
-label_encoders = joblib.load("label_encoders.pkl")
+label_encoders = joblib.load("LabelEncoder.pkl")
 feature_columns = joblib.load("feature_columns.pkl")
 
-# Define input schema with constraints
 class PredictionInput(BaseModel):
     country: str = Field(..., description="Country / territory of asylum/residence")
     origin: str = Field(..., description="Country of origin of asylum seeker")
@@ -38,22 +36,18 @@ class PredictionInput(BaseModel):
 @app.post("/predict")
 def predict_acceptance_rate(input_data: PredictionInput):
     try:
-        # Prepare the feature array based on the notebook's feature order
-        # Features: ['country_encoded', 'origin_encoded', 'procedure_encoded', 'Year', 
-        #           'Applied during year', 'Tota pending start-year', 
-        #           'of which UNHCR-assisted(start-year)', 'decisions_other']
+        with open('LabelEncoder.pkl', 'rb') as f:
+            label_encoders = pickle.load(f)
         
-        # Encode categorical features
         country_encoded = 0
         origin_encoded = 0
         procedure_encoded = 0
         
-        # Try to encode using the saved label encoders
         try:
             if 'country' in label_encoders:
                 country_encoded = label_encoders['country'].transform([input_data.country])[0]
         except:
-            country_encoded = 0  # Unknown category
+            country_encoded = 0  
             
         try:
             if 'origin' in label_encoders:
@@ -67,7 +61,6 @@ def predict_acceptance_rate(input_data: PredictionInput):
         except:
             procedure_encoded = 0
         
-        # Create feature array in the correct order
         features_array = np.array([[
             country_encoded,
             origin_encoded, 
@@ -79,13 +72,10 @@ def predict_acceptance_rate(input_data: PredictionInput):
             input_data.decisions_other
         ]])
         
-        # Scale the features
         features_scaled = scaler.transform(features_array)
         
-        # Make prediction
         prediction = model.predict(features_scaled)[0]
         
-        # Ensure prediction is between 0 and 1 (acceptance rate)
         prediction = float(max(0.0, min(1.0, prediction)))
         
         return {
