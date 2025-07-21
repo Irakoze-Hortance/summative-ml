@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import numpy as np
 import uvicorn
+import pickle
+from sklearn.preprocessing import LabelEncoder
 
 
 app = FastAPI()
@@ -36,11 +38,6 @@ class PredictionInput(BaseModel):
 @app.post("/predict")
 def predict_acceptance_rate(input_data: PredictionInput):
     try:
-        # Load the label encoders
-        import pickle
-        with open('label_encoders.pkl', 'rb') as f:
-            label_encoders = pickle.load(f)
-        
         # Prepare the feature array based on the notebook's feature order
         # Features: ['country_encoded', 'origin_encoded', 'procedure_encoded', 'Year', 
         #           'Applied during year', 'Tota pending start-year', 
