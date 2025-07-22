@@ -7,7 +7,6 @@ import uvicorn
 import pickle
 from sklearn.preprocessing import LabelEncoder
 
-
 app = FastAPI()
 
 app.add_middleware(
@@ -20,7 +19,7 @@ app.add_middleware(
 
 model = joblib.load("best_model.pkl")
 scaler = joblib.load("scaler.pkl")
-label_encoders = joblib.load("LabelEncoder.pkl")
+label_encoders = joblib.load("label_encoders.pkl")
 feature_columns = joblib.load("feature_columns.pkl")
 
 class PredictionInput(BaseModel):
@@ -36,7 +35,7 @@ class PredictionInput(BaseModel):
 @app.post("/predict")
 def predict_acceptance_rate(input_data: PredictionInput):
     try:
-        with open('LabelEncoder.pkl', 'rb') as f:
+        with open('label_encoders.pkl', 'rb') as f:
             label_encoders = pickle.load(f)
         
         country_encoded = 0
@@ -47,14 +46,14 @@ def predict_acceptance_rate(input_data: PredictionInput):
             if 'country' in label_encoders:
                 country_encoded = label_encoders['country'].transform([input_data.country])[0]
         except:
-            country_encoded = 0  
-            
+            country_encoded = 0
+        
         try:
             if 'origin' in label_encoders:
                 origin_encoded = label_encoders['origin'].transform([input_data.origin])[0]
         except:
             origin_encoded = 0
-            
+        
         try:
             if 'procedure' in label_encoders:
                 procedure_encoded = label_encoders['procedure'].transform([input_data.procedure_type])[0]
@@ -82,7 +81,7 @@ def predict_acceptance_rate(input_data: PredictionInput):
             "predicted_acceptance_rate": prediction,
             "prediction_percentage": f"{prediction * 100:.2f}%"
         }
-        
+    
     except Exception as e:
         return {"error": f"Prediction failed: {str(e)}"}
 
